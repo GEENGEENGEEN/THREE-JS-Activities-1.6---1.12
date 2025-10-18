@@ -1,15 +1,11 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
-import * as dat from 'lil-gui'
+
+console.log('Activity 1.12 script loaded');
 
 /**
  * Base
  */
-// Debug
-const gui = new dat.GUI()
-
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
@@ -17,61 +13,12 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 /**
- * Textures
+ * Object
  */
-const textureLoader = new THREE.TextureLoader()
-const matcapTexture = textureLoader.load('textures/matcaps/8.png')
-
-/**
- * Fonts
- */
-const fontLoader = new FontLoader()
-
-fontLoader.load(
-    '/fonts/helvetiker_regular.typeface.json',
-    (font) =>
-    {
-        // Material
-        const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture })
-
-        // Text
-        const textGeometry = new TextGeometry(
-            'Hello Three.js',
-            {
-                font: font,
-                size: 0.5,
-                height: 0.2,
-                curveSegments: 12,
-                bevelEnabled: true,
-                bevelThickness: 0.03,
-                bevelSize: 0.02,
-                bevelOffset: 0,
-                bevelSegments: 5
-            }
-        )
-        textGeometry.center()
-
-        const text = new THREE.Mesh(textGeometry, material)
-        scene.add(text)
-
-        // Donuts
-        const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 32, 64)
-
-        for(let i = 0; i < 100; i++)
-        {
-            const donut = new THREE.Mesh(donutGeometry, material)
-            donut.position.x = (Math.random() - 0.5) * 10
-            donut.position.y = (Math.random() - 0.5) * 10
-            donut.position.z = (Math.random() - 0.5) * 10
-            donut.rotation.x = Math.random() * Math.PI
-            donut.rotation.y = Math.random() * Math.PI
-            const scale = Math.random()
-            donut.scale.set(scale, scale, scale)
-
-            scene.add(donut)
-        }
-    }
-)
+const geometry = new THREE.BoxGeometry(1, 1, 1)
+const material = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+const mesh = new THREE.Mesh(geometry, material)
+scene.add(mesh)
 
 /**
  * Sizes
@@ -103,7 +50,7 @@ window.addEventListener('resize', () =>
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
 camera.position.x = 1
 camera.position.y = 1
-camera.position.z = 2
+camera.position.z = 3
 scene.add(camera)
 
 // Controls
@@ -120,6 +67,41 @@ renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 /**
+ * Textures
+ * Demonstrates loading and using various texture types for realism and PBR
+ */
+
+const textureLoader = new THREE.TextureLoader()
+
+// Use matcap texture since it's available
+const matcapTexture = textureLoader.load('/textures/matcaps/8.png')
+
+// Texture optimization tip: Use power-of-2 sizes (e.g., 256x256, 512x512) for best GPU performance and mipmapping.
+// Compression: Use compressed formats (like JPEG for color, PNG for alpha) and keep file sizes small for faster loading.
+
+/**
+ * Object with texture (MeshStandardMaterial for PBR)
+ */
+const pbrMaterial = new THREE.MeshMatcapMaterial({
+    matcap: matcapTexture
+})
+
+// Replace the mesh's material
+mesh.material = pbrMaterial
+
+// For ambient occlusion/displacement, set mesh.geometry.attributes.uv2 = mesh.geometry.attributes.uv
+if (mesh.geometry.attributes.uv) {
+    mesh.geometry.setAttribute('uv2', new THREE.BufferAttribute(mesh.geometry.attributes.uv.array, 2))
+}
+
+// Lighting for PBR
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+scene.add(ambientLight)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1)
+directionalLight.position.set(2, 2, 5)
+scene.add(directionalLight)
+
+/**
  * Animate
  */
 const clock = new THREE.Clock()
@@ -127,6 +109,10 @@ const clock = new THREE.Clock()
 const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
+
+    // Always rotate the mesh
+    mesh.rotation.y += 0.01
+    mesh.rotation.x += 0.005
 
     // Update controls
     controls.update()
